@@ -1,4 +1,6 @@
 /*
+ *
+ *
  * =====================================================================================
  *
  *       Filename:  main.cpp
@@ -85,6 +87,7 @@ int main( int argc, char* argv[]) {
 			json_files.push_back(files[i]);
 		}
 	}
+	printf("========================\n");
 
 	// parse json file
 	static int parse_num = 0;
@@ -98,37 +101,28 @@ int main( int argc, char* argv[]) {
 
 		if (reader.parse(ifs, root)) {
 			// parse each json unit
-			for ( int j=0; j<root.size(); j++ ) {
-				Json::Value single_unit = root[j];
-				cout<<single_unit<<endl;
-				unsigned long long int time_stamp = single_unit["time_stamp"].asUInt64();
-				int offset_x = single_unit["x"].asInt();
-				int offset_y = single_unit["y"].asInt();
-				int height = single_unit["height"].asInt();
-				int width = single_unit["width"].asInt();
-				int people_id = single_unit["people_id"].asInt();
-
-				char src_loc[1024];
-				sprintf(src_loc, "%s/%lld.jpg", argv[1], time_stamp);
-				Mat src_img = imread(src_loc);
-				if (!src_img.empty()) {
-					int w_height = src_img.rows;
-					int w_width = src_img.cols;
-					Mat sub;
-					sub.create(height, width, CV_8UC3);
-					for ( int y = 0; y<height; y++ ) {
-						for ( int x=0; x<width; x++ ) {
-							sub.data[3*(y*width+x) + 0 ] = src_img.data[3*( (y+offset_y)*w_width + (x+offset_x)) + 0];
-							sub.data[3*(y*width+x) + 1 ] = src_img.data[3*( (y+offset_y)*w_width + (x+offset_x)) + 1];
-							sub.data[3*(y*width+x) + 2 ] = src_img.data[3*( (y+offset_y)*w_width + (x+offset_x)) + 2];
-						}
-					}
-
-					char sub_loc[1024];
-					sprintf(sub_loc, "%s/sub_%d.jpg", argv[1], parse_num++);
-					imwrite(sub_loc, sub);
-				}
+			cout<<root<<endl;
+			Json::Value cutboard_box = root["CutboardBox"];
+			cout<<cutboard_box<<endl;
+			if(cutboard_box.empty()) {
+				ifs.close();
+				continue;
 			}
+			int offset_x = root["CutboardBox"][0].asInt();
+			int offset_y = root["CutboardBox"][1].asInt();
+			int height = root["CutboardBox"][2].asInt();
+			int width = root["CutboardBox"][3].asInt();
+			printf("x = %d, y = %d, height = %d, width = %d\n", offset_x, offset_y, height, width);
+			unsigned long long int start_time = root["StartTime"].asUInt64();
+			cout<<root["CutboardTimeOffset"]<<endl;
+			int time_offset = root["CutboardTimeOffset"][0].asInt();
+			unsigned long long int time_stamp = start_time - time_offset;
+			char img_loc[1024];
+			sprintf(img_loc, "%lld.jpg", time_stamp);
+			Mat image = imread(img_loc);
+			rectangle(image, Point(offset_x, offset_y), Point(offset_x + width, offset_y + height), Scalar(255, 0, 0), 2);
+			imshow("image", image);
+			waitKey(0);
 		}
 		ifs.close();
 	}
